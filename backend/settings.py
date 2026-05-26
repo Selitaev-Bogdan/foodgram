@@ -4,8 +4,16 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-your-secret-key-here'
+
 DEBUG = False
-ALLOWED_HOSTS = ['bodaybik.ru', '127.0.0.1', 'localhost']
+
+ALLOWED_HOSTS = [
+    '158.160.248.156',
+    'bodaybik.ru',
+    'www.bodaybik.ru',
+    '127.0.0.1',
+    'localhost',
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -52,12 +60,16 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'backend.wsgi.application'
+WSGI_APPLICATION = 'wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',
+        'USER': 'postgres',
+        'PASSWORD': 'postgres',
+        'HOST': 'db',
+        'PORT': '5432',
     }
 }
 
@@ -75,6 +87,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = '/var/html/static/'
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = '/var/html/media/'
 
@@ -90,6 +103,8 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
     ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 6,
 }
 
 CORS_ALLOWED_ORIGINS = [
@@ -97,6 +112,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://bodaybik.ru",
     "https://bodaybik.ru",
+    "http://158.160.248.156",
 ]
 
 AUTH_USER_MODEL = 'users.User'

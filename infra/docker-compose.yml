@@ -15,8 +15,8 @@ services:
       - DJANGO_SETTINGS_MODULE=backend.settings
       - PYTHONPATH=/app
     volumes:
-      - static_value:/var/html/static/
-      - media_value:/var/html/media/
+      - static_value:/app/static/
+      - media_value:/app/media/
     env_file:
       - .env
     depends_on:

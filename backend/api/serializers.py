@@ -1,21 +1,20 @@
 from django.contrib.auth import get_user_model
-from drf_extra_fields.fields import Base64ImageField
 from djoser.serializers import (
     UserCreateSerializer as DjoserUserCreateSerializer,
     UserSerializer as DjoserUserSerializer
 )
+from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
 
 from recipes.constants import MIN_AMOUNT, MIN_COOKING_TIME
-from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag, Follow
+from recipes.models import Follow, Ingredient, Recipe, RecipeIngredient, Tag
 
 User = get_user_model()
 
 
 class UserSerializer(DjoserUserSerializer):
-    """Отображение информации о пользователе."""
     is_subscribed = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
@@ -33,7 +32,6 @@ class UserSerializer(DjoserUserSerializer):
 
 
 class UserCreateSerializer(DjoserUserCreateSerializer):
-    """Регистрация новых пользователей."""
     class Meta:
         model = User
         fields = (
@@ -43,7 +41,6 @@ class UserCreateSerializer(DjoserUserCreateSerializer):
 
 
 class ShortRecipeSerializer(serializers.ModelSerializer):
-    """Упрощенный формат рецепта для списков подписок и избранного."""
     class Meta:
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
@@ -51,7 +48,6 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
 
 
 class UserSubscriptionsSerializer(UserSerializer):
-    """Отображение авторов, на которых подписан пользователь, с их рецептами"""
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.ReadOnlyField(source='recipes.count')
 
@@ -71,7 +67,6 @@ class UserSubscriptionsSerializer(UserSerializer):
 
 
 class SubscribeSerializer(serializers.ModelSerializer):
-    """Создание и валидация подписки."""
     class Meta:
         model = Follow
         fields = ('user', 'author')
@@ -95,23 +90,19 @@ class SubscribeSerializer(serializers.ModelSerializer):
         ).data
 
 
-
 class TagSerializer(serializers.ModelSerializer):
-    """Работа с тегами."""
     class Meta:
         model = Tag
         fields = ('id', 'name', 'color', 'slug')
 
 
 class IngredientSerializer(serializers.ModelSerializer):
-    """Работа с ингредиентами."""
     class Meta:
         model = Ingredient
         fields = ('id', 'name', 'measurement_unit')
 
 
 class RecipeIngredientSerializer(serializers.ModelSerializer):
-    """Отображение ингредиентов в рецепте."""
     id = serializers.ReadOnlyField(source='ingredient.id')
     name = serializers.ReadOnlyField(source='ingredient.name')
     measurement_unit = serializers.ReadOnlyField(
@@ -124,7 +115,6 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
 
 
 class RecipeReadSerializer(serializers.ModelSerializer):
-    """Чтение рецептов (GET)."""
     tags = TagSerializer(many=True, read_only=True)
     author = UserSerializer(read_only=True)
     ingredients = RecipeIngredientSerializer(
@@ -145,7 +135,6 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 
 
 class RecipeWriteSerializer(serializers.ModelSerializer):
-    """Создание и обновление рецептов (POST, PATCH)."""
     tags = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(),
         many=True
@@ -163,7 +152,8 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = (
-            'ingredients', 'tags', 'image', 'name', 'text', 'cooking_time'
+            'ingredients', 'tags', 'image', 'name', 'text',
+            'cooking_time', 'author'
         )
 
     def get_ingredients(self, obj):
@@ -175,30 +165,25 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         ingredients = self.initial_data.get('ingredients')
         if not ingredients:
             raise ValidationError('Нужен хотя бы один ингредиент.')
-
         ingredient_list = []
         for item in ingredients:
             try:
                 amount = int(item.get('amount'))
             except (ValueError, TypeError):
                 raise ValidationError('Количество должно быть числом.')
-
             if amount < MIN_AMOUNT:
                 raise ValidationError(f'Минимальное количество—{MIN_AMOUNT}.')
-
             ingredient_id = item.get('id')
             if not ingredient_id:
                 raise ValidationError('У ингредиента должен быть ID.')
             if ingredient_id in ingredient_list:
                 raise ValidationError('Ингредиенты не должны повторяться.')
             ingredient_list.append(ingredient_id)
-
         tags = self.initial_data.get('tags')
         if not tags:
             raise ValidationError('Нужен хотя бы один тег.')
         if len(set(tags)) != len(tags):
             raise ValidationError('Теги не должны повторяться.')
-
         return data
 
     def _set_ingredients_and_tags(self, recipe, tags, ingredients):

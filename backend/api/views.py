@@ -5,25 +5,21 @@ from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated, SafeMethods
+from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
 from rest_framework.response import Response
 
-from recipes.models import (
-    Favorite, Follow, Ingredient, Recipe, RecipeIngredient, 
-    ShoppingCart, Tag
-)
+from api.filters import RecipeFilter
+from api.permissions import IsAuthorOrReadOnly
+from api.serializers import (IngredientSerializer, RecipeReadSerializer,
+                             RecipeWriteSerializer, ShortRecipeSerializer,
+                             SubscribeSerializer, TagSerializer, UserSerializer,
+                             UserSubscriptionsSerializer)
+from recipes.models import (Favorite, Follow, Ingredient, Recipe,
+                            RecipeIngredient, ShoppingCart, Tag)
 from users.models import User
-from .filters import IngredientFilter, RecipeFilter
-from .permissions import IsAuthorOrReadOnly
-from .serializers import (
-    IngredientSerializer, RecipeReadSerializer, RecipeWriteSerializer,
-    ShortRecipeSerializer, SubscribeSerializer, TagSerializer,
-    UserSerializer, UserSubscriptionsSerializer
-)
 
 
 class UserViewSet(DjoserUserViewSet):
-    """Вьюсет для работы с пользователями и подписками."""
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
@@ -33,7 +29,6 @@ class UserViewSet(DjoserUserViewSet):
         permission_classes=[IsAuthenticated]
     )
     def subscribe(self, request, id):
-        """Создать или удалить подписку на автора."""
         user = request.user
         author = get_object_or_404(User, id=id)
 
@@ -60,7 +55,6 @@ class UserViewSet(DjoserUserViewSet):
         permission_classes=[IsAuthenticated]
     )
     def subscriptions(self, request):
-        """Получить список своих подписок."""
         user = request.user
         queryset = User.objects.filter(following__user=user)
         page = self.paginate_queryset(queryset)
@@ -71,35 +65,35 @@ class UserViewSet(DjoserUserViewSet):
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
-    """Вьюсет для тегов (только чтение)."""
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     pagination_class = None
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
-    """Вьюсет для ингредиентов (только чтение + поиск)."""
-    queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    filter_backends = (DjangoFilterBackend,)
-    filterset_class = IngredientFilter
-    pagination_class = None
+
+    def get_queryset(self):
+        queryset = Ingredient.objects.all()
+        name = self.request.query_params.get('name')
+
+        if name:
+            return queryset.filter(name__istartswith=name)
+        return queryset
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
-    """Вьюсет для рецептов."""
     queryset = Recipe.objects.all()
     permission_classes = (IsAuthorOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
 
     def get_serializer_class(self):
-        if self.request.method in SafeMethods:
+        if self.request.method in SAFE_METHODS:
             return RecipeReadSerializer
         return RecipeWriteSerializer
 
     def _add_to(self, model, user, pk):
-        """Вспомогательный метод для добавления в избранное/корзину."""
         if model.objects.filter(user=user, recipe__id=pk).exists():
             return Response(
                 {'errors': 'Рецепт уже добавлен'},
@@ -111,7 +105,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def _delete_from(self, model, user, pk):
-        """Вспомогательный метод для удаления из избранного/корзины."""
         obj = model.objects.filter(user=user, recipe__id=pk)
         if obj.exists():
             obj.delete()
@@ -123,11 +116,20 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
+        methods=['get'],
+        permission_classes=[IsAuthenticated]
+    )
+    def get_link(self, request, pk):
+        recipe = get_object_or_404(Recipe, id=pk)
+        short_link = f'http://{request.get_host()}/s/{recipe.id}/'
+        return Response({'short-link': short_link}, status=status.HTTP_200_OK)
+
+    @action(
+        detail=True,
         methods=['post', 'delete'],
         permission_classes=[IsAuthenticated]
     )
     def favorite(self, request, pk):
-        """Добавить/удалить из избранного."""
         if request.method == 'POST':
             return self._add_to(Favorite, request.user, pk)
         return self._delete_from(Favorite, request.user, pk)
@@ -138,7 +140,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated]
     )
     def shopping_cart(self, request, pk):
-        """Добавить/удалить из списка покупок."""
         if request.method == 'POST':
             return self._add_to(ShoppingCart, request.user, pk)
         return self._delete_from(ShoppingCart, request.user, pk)
@@ -148,7 +149,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated]
     )
     def download_shopping_cart(self, request):
-        """Скачать список ингредиентов в формате TXT."""
         ingredients = RecipeIngredient.objects.filter(
             recipe__shopping_cart__user=request.user
         ).values(
@@ -167,3 +167,4 @@ class RecipeViewSet(viewsets.ModelViewSet):
         response = HttpResponse(shopping_list, content_type='text/plain')
         response['Content-Disposition'] = f'attachment; filename={filename}'
         return response
+

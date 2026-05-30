@@ -10,11 +10,13 @@ services:
     build:
       context: ../
       dockerfile: backend/Dockerfile
+    working_dir: /app
     command: gunicorn backend.wsgi:application --bind 0.0.0.0:8000
     environment:
       - DJANGO_SETTINGS_MODULE=backend.settings
       - PYTHONPATH=/app
     volumes:
+      - ../:/app
       - static_value:/app/static/
       - media_value:/app/media/
     env_file:
@@ -36,6 +38,7 @@ services:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - static_value:/var/html/static/
       - media_value:/var/html/media/
+      - ../frontend/build:/usr/share/nginx/html/
     depends_on:
       - frontend
       - web

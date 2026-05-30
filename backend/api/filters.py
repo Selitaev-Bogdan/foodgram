@@ -4,15 +4,6 @@ from rest_framework.filters import SearchFilter
 from recipes.models import Ingredient, Recipe, Tag
 
 
-class IngredientFilter(SearchFilter):
-    """Поиск ингредиентов по названию."""
-    search_param = 'name'
-
-    class Meta:
-        model = Ingredient
-        fields = ('name',)
-
-
 class RecipeFilter(filters.FilterSet):
     """Фильтрация рецептов по тегам, автору, избранному и корзине."""
     tags = filters.ModelMultipleChoiceFilter(

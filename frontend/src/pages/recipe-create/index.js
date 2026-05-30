@@ -74,7 +74,7 @@ const RecipeCreate = ({ onEdit }) => {
         return setIngredients([]);
       }
       api.getIngredients({ name: ingredientValue.name }).then((ingredients) => {
-        setIngredients(ingredients);
+        setIngredients(ingredients.results || []);
       });
     },
     [ingredientValue.name]

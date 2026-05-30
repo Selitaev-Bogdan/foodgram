@@ -5,9 +5,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'default-insecure-key-for-dev')
 
-DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+DEBUG = True
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'bodaybik.ru', 'www.bodaybik.ru', '158.160.248.156', 'web']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -21,9 +21,9 @@ INSTALLED_APPS = [
     'djoser',
     'corsheaders',
     'django_filters',
-    'backend.users',
-    'backend.recipes',
-    'backend.api',
+    'backend.users.apps.UsersConfig',
+    'backend.recipes.apps.RecipesConfig',
+    'backend.api.apps.ApiConfig',
 ]
 
 MIDDLEWARE = [
@@ -55,7 +55,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'wsgi.application'
+WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': {

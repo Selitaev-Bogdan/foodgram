@@ -9,7 +9,7 @@ class MyUserAdmin(UserAdmin):
     """Конфигурация админки для пользователей."""
 
     list_display = (
-        'id', 'username', 'email', 
+        'id', 'username', 'email',
         'first_name', 'last_name', 'is_staff'
     )
     search_fields = ('username', 'email')

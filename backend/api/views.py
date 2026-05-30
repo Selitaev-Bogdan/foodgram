@@ -10,9 +10,11 @@ from rest_framework.response import Response
 
 from api.filters import RecipeFilter
 from api.permissions import IsAuthorOrReadOnly
-from api.serializers import (AvatarSerializer, IngredientSerializer, RecipeReadSerializer,
+from api.serializers import (AvatarSerializer, IngredientSerializer,
+                             RecipeReadSerializer,
                              RecipeWriteSerializer, ShortRecipeSerializer,
-                             SubscribeSerializer, TagSerializer, UserSerializer,
+                             SubscribeSerializer, TagSerializer,
+                             UserSerializer,
                              UserSubscriptionsSerializer)
 from recipes.models import (Favorite, Follow, Ingredient, Recipe,
                             RecipeIngredient, ShoppingCart, Tag)
@@ -185,4 +187,3 @@ class RecipeViewSet(viewsets.ModelViewSet):
         response = HttpResponse(shopping_list, content_type='text/plain')
         response['Content-Disposition'] = f'attachment; filename={filename}'
         return response
-

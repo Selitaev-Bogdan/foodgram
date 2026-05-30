@@ -10,10 +10,10 @@ services:
     build:
       context: ../
       dockerfile: backend/Dockerfile
-    working_dir: /app
-    command: gunicorn backend.wsgi:application --bind 0.0.0.0:8000
+    working_dir: /app/backend
+    command: gunicorn wsgi:application --bind 0.0.0.0:8000
     environment:
-      - DJANGO_SETTINGS_MODULE=backend.settings
+      - DJANGO_SETTINGS_MODULE=settings
       - PYTHONPATH=/app
     volumes:
       - ../:/app

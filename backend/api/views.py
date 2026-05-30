@@ -5,12 +5,12 @@ from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
+from rest_framework.permissions import IsAuthenticated, SAFE_METHODS, AllowAny
 from rest_framework.response import Response
 
 from api.filters import RecipeFilter
 from api.permissions import IsAuthorOrReadOnly
-from api.serializers import (IngredientSerializer, RecipeReadSerializer,
+from api.serializers import (AvatarSerializer, IngredientSerializer, RecipeReadSerializer,
                              RecipeWriteSerializer, ShortRecipeSerializer,
                              SubscribeSerializer, TagSerializer, UserSerializer,
                              UserSubscriptionsSerializer)
@@ -62,6 +62,23 @@ class UserViewSet(DjoserUserViewSet):
             page, many=True, context={'request': request}
         )
         return self.get_paginated_response(serializer.data)
+
+    @action(
+        detail=False,
+        methods=['put', 'delete'],
+        permission_classes=[IsAuthenticated],
+        url_path='me/avatar'
+    )
+    def avatar(self, request):
+        user = request.user
+        if request.method == 'PUT':
+            serializer = AvatarSerializer(user, data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        user.avatar.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -117,7 +134,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=['get'],
-        permission_classes=[IsAuthenticated]
+        url_path='get-link',
+        permission_classes=[AllowAny]
     )
     def get_link(self, request, pk):
         recipe = get_object_or_404(Recipe, id=pk)

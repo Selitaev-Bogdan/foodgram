@@ -1,4 +1,3 @@
-print("DEBUG: ФАЙЛ backend/api/urls.py БЫЛ ЗАГРУЖЕН!")
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 

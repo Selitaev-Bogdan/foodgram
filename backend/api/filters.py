@@ -1,10 +1,17 @@
 from django_filters import rest_framework as filters
 
-from recipes.models import Recipe, Tag
+from recipes.models import Ingredient, Recipe, Tag
+
+
+class IngredientFilter(filters.FilterSet):
+    name = filters.CharFilter(lookup_expr='istartswith')
+
+    class Meta:
+        model = Ingredient
+        fields = ('name',)
 
 
 class RecipeFilter(filters.FilterSet):
-    """Фильтрация рецептов по тегам, автору, избранному и корзине."""
     tags = filters.ModelMultipleChoiceFilter(
         field_name='tags__slug',
         to_field_name='slug',
@@ -12,7 +19,8 @@ class RecipeFilter(filters.FilterSet):
     )
     is_favorited = filters.BooleanFilter(method='filter_is_favorited')
     is_in_shopping_cart = filters.BooleanFilter(
-        method='filter_is_in_shopping_cart')
+        method='filter_is_in_shopping_cart'
+    )
 
     class Meta:
         model = Recipe
@@ -29,3 +37,4 @@ class RecipeFilter(filters.FilterSet):
         if value and user.is_authenticated:
             return queryset.filter(shopping_cart__user=user)
         return queryset
+

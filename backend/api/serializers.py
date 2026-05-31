@@ -1,15 +1,14 @@
 from django.contrib.auth import get_user_model
-from djoser.serializers import (
-    UserCreateSerializer as DjoserUserCreateSerializer,
-    UserSerializer as DjoserUserSerializer
-)
+from djoser.serializers import (UserCreateSerializer as DjoserUserCreateSerializer,
+                                UserSerializer as DjoserUserSerializer)
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
 
 from recipes.constants import MIN_AMOUNT, MIN_COOKING_TIME
-from recipes.models import Follow, Ingredient, Recipe, RecipeIngredient, Tag
+from recipes.models import (Favorite, Follow, Ingredient, Recipe,
+                            RecipeIngredient, ShoppingCart, Tag)
 
 User = get_user_model()
 
@@ -68,7 +67,6 @@ class UserSubscriptionsSerializer(UserSerializer):
         queryset = obj.recipes.all()
         if limit and isinstance(limit, str) and limit.isdigit():
             queryset = queryset[:int(limit)]
-
         return ShortRecipeSerializer(queryset, many=True, read_only=True).data
 
 
@@ -181,34 +179,25 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         ingredients = self.initial_data.get('ingredients')
         if not ingredients:
             raise ValidationError('Нужен хотя бы один ингредиент.')
-
         ingredient_list = []
         for item in ingredients:
             amount = item.get('amount')
-
             if not str(amount).isdigit():
                 raise ValidationError('Укажите целое положительное число.')
-
             amount = int(amount)
-
             if amount < MIN_AMOUNT:
                 raise ValidationError(f'Минимальное количество—{MIN_AMOUNT}.')
-
             ingredient_id = item.get('id')
             if not ingredient_id:
                 raise ValidationError('У ингредиента должен быть ID.')
-
             if ingredient_id in ingredient_list:
                 raise ValidationError('Ингредиенты не должны повторяться.')
-
             ingredient_list.append(ingredient_id)
-
         tags = self.initial_data.get('tags')
         if not tags:
             raise ValidationError('Нужен хотя бы один тег.')
         if len(set(tags)) != len(tags):
             raise ValidationError('Теги не должны повторяться.')
-
         return data
 
     def _set_ingredients_and_tags(self, recipe, tags, ingredients):
@@ -239,3 +228,42 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         return RecipeReadSerializer(instance, context=self.context).data
+
+
+class FavoriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Favorite
+        fields = ('user', 'recipe')
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Favorite.objects.all(),
+                fields=('user', 'recipe'),
+                message='Рецепт уже в избранном.'
+            )
+        ]
+
+    def to_representation(self, instance):
+        return ShortRecipeSerializer(
+            instance.recipe,
+            context=self.context
+        ).data
+
+
+class ShoppingCartSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShoppingCart
+        fields = ('user', 'recipe')
+        validators = [
+            UniqueTogetherValidator(
+                queryset=ShoppingCart.objects.all(),
+                fields=('user', 'recipe'),
+                message='Рецепт уже в корзине.'
+            )
+        ]
+
+    def to_representation(self, instance):
+        return ShortRecipeSerializer(
+            instance.recipe,
+            context=self.context
+        ).data
+

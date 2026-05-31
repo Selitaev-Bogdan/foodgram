@@ -57,20 +57,18 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
 
 class UserSubscriptionsSerializer(UserSerializer):
     recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.ReadOnlyField(source='recipes.count')
+    recipes_count = serializers.IntegerField(read_only=True)
 
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + ('recipes', 'recipes_count')
 
     def get_recipes(self, obj):
         request = self.context.get('request')
-        limit = request.GET.get('recipes_limit')
+        limit = request.query_params.get('recipes_limit')
         queryset = obj.recipes.all()
-        if limit:
-            try:
-                queryset = queryset[:int(limit)]
-            except (ValueError, TypeError):
-                pass
+        if limit and isinstance(limit, str) and limit.isdigit():
+            queryset = queryset[:int(limit)]
+
         return ShortRecipeSerializer(queryset, many=True, read_only=True).data
 
 
@@ -183,25 +181,34 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         ingredients = self.initial_data.get('ingredients')
         if not ingredients:
             raise ValidationError('Нужен хотя бы один ингредиент.')
+
         ingredient_list = []
         for item in ingredients:
-            try:
-                amount = int(item.get('amount'))
-            except (ValueError, TypeError):
-                raise ValidationError('Количество должно быть числом.')
+            amount = item.get('amount')
+
+            if not str(amount).isdigit():
+                raise ValidationError('Укажите целое положительное число.')
+
+            amount = int(amount)
+
             if amount < MIN_AMOUNT:
                 raise ValidationError(f'Минимальное количество—{MIN_AMOUNT}.')
+
             ingredient_id = item.get('id')
             if not ingredient_id:
                 raise ValidationError('У ингредиента должен быть ID.')
+
             if ingredient_id in ingredient_list:
                 raise ValidationError('Ингредиенты не должны повторяться.')
+
             ingredient_list.append(ingredient_id)
+
         tags = self.initial_data.get('tags')
         if not tags:
             raise ValidationError('Нужен хотя бы один тег.')
         if len(set(tags)) != len(tags):
             raise ValidationError('Теги не должны повторяться.')
+
         return data
 
     def _set_ingredients_and_tags(self, recipe, tags, ingredients):

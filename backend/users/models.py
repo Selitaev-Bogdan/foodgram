@@ -6,8 +6,6 @@ from .validators import validate_username
 
 
 class User(AbstractUser):
-    """Кастомная модель пользователя для проекта Foodgram."""
-
     email = models.EmailField(
         verbose_name='Электронная почта',
         max_length=254,
@@ -30,7 +28,6 @@ class User(AbstractUser):
     avatar = models.ImageField(
         verbose_name='Аватар',
         upload_to='users/',
-        null=True,
         blank=True,
     )
 

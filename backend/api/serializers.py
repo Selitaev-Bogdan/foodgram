@@ -67,7 +67,9 @@ class UserSubscriptionsSerializer(UserSerializer):
         queryset = obj.recipes.all()
         if limit and isinstance(limit, str) and limit.isdigit():
             queryset = queryset[:int(limit)]
-        return ShortRecipeSerializer(queryset, many=True, read_only=True).data
+        return ShortRecipeSerializer(
+            queryset, many=True, context=self.context
+        ).data
 
 
 class SubscribeSerializer(serializers.ModelSerializer):
@@ -266,3 +268,4 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
             instance.recipe,
             context=self.context
         ).data
+

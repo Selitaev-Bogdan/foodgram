@@ -10,16 +10,13 @@ from rest_framework.response import Response
 
 from api.filters import IngredientFilter, RecipeFilter
 from api.permissions import IsAuthorOrReadOnly
-from api.serializers import (
-    AvatarSerializer, FavoriteSerializer, IngredientSerializer,
-    RecipeReadSerializer, RecipeWriteSerializer, ShoppingCartSerializer,
-    SubscribeSerializer, TagSerializer, UserSerializer,
-    UserSubscriptionsSerializer
-)
-from recipes.models import (
-    Favorite, Follow, Ingredient, Recipe,
-    RecipeIngredient, ShoppingCart, Tag
-)
+from api.serializers import (AvatarSerializer, FavoriteSerializer,
+                             IngredientSerializer, RecipeReadSerializer,
+                             RecipeWriteSerializer, ShoppingCartSerializer,
+                             SubscribeSerializer, TagSerializer,
+                             UserSerializer, UserSubscriptionsSerializer)
+from recipes.models import (Favorite, Follow, Ingredient, Recipe,
+                            RecipeIngredient, ShoppingCart, Tag)
 from users.models import User
 
 
@@ -46,12 +43,11 @@ class UserViewSet(DjoserUserViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         deleted_count, _ = Follow.objects.filter(
-            user=user, author=author
+            user=user,
+            author=author
         ).delete()
-
         if deleted_count:
             return Response(status=status.HTTP_204_NO_CONTENT)
-
         return Response(
             {'errors': 'Вы не подписаны на этого пользователя'},
             status=status.HTTP_400_BAD_REQUEST
@@ -105,10 +101,8 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
-    queryset = Recipe.objects.select_related(
-        'author'
-    ).prefetch_related(
-        'tags', 'recipe_ingredients__ingredient'
+    queryset = Recipe.objects.select_related('author').prefetch_related(
+        'tags', 'ingredients'
     )
     permission_classes = (IsAuthorOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
@@ -119,19 +113,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return RecipeReadSerializer
         return RecipeWriteSerializer
 
-    def _add_to(self, serializer_class, request, pk):
-        serializer = serializer_class(
-            data={'user': request.user.id, 'recipe': pk},
-            context={'request': request}
-        )
+    def _add_to(self, serializer_class, user, pk):
+        data = {'user': user.id, 'recipe': pk}
+        serializer = serializer_class(data=data, context={'request': self.request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def _delete_from(self, model, user, pk):
-        deleted_count, _ = model.objects.filter(
-            user=user, recipe__id=pk
-        ).delete()
+        deleted_count, _ = model.objects.filter(user=user, recipe__id=pk).delete()
         if deleted_count:
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(
@@ -157,7 +147,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def favorite(self, request, pk):
         if request.method == 'POST':
-            return self._add_to(FavoriteSerializer, request, pk)
+            return self._add_to(FavoriteSerializer, request.user, pk)
         return self._delete_from(Favorite, request.user, pk)
 
     @action(
@@ -167,11 +157,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def shopping_cart(self, request, pk):
         if request.method == 'POST':
-            return self._add_to(ShoppingCartSerializer, request, pk)
+            return self._add_to(ShoppingCartSerializer, request.user, pk)
         return self._delete_from(ShoppingCart, request.user, pk)
 
-    @staticmethod
-    def _generate_shopping_list(ingredients):
+    def _generate_shopping_list_text(self, ingredients):
         shopping_list = 'Список покупок:\n\n'
         for ingredient in ingredients:
             shopping_list += (
@@ -192,9 +181,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
             'ingredient__name', 'ingredient__measurement_unit'
         ).annotate(amount=Sum('amount'))
 
-        shopping_list_text = self._generate_shopping_list(ingredients)
-
+        shopping_list = self._generate_shopping_list_text(ingredients)
         filename = f'{request.user.username}_shopping_list.txt'
-        response = HttpResponse(shopping_list_text, content_type='text/plain')
+        response = HttpResponse(shopping_list, content_type='text/plain')
         response['Content-Disposition'] = f'attachment; filename={filename}'
         return response

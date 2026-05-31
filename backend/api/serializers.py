@@ -183,7 +183,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         for item in ingredients:
             amount = item.get('amount')
             if not str(amount).isdigit():
-                raise ValidationError('Укажите целое положительное число.')
+                raise ValidationError('Количество должно быть числом.')
             amount = int(amount)
             if amount < MIN_AMOUNT:
                 raise ValidationError(f'Минимальное количество—{MIN_AMOUNT}.')
@@ -266,4 +266,3 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
             instance.recipe,
             context=self.context
         ).data
-

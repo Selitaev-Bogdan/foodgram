@@ -115,13 +115,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def _add_to(self, serializer_class, user, pk):
         data = {'user': user.id, 'recipe': pk}
-        serializer = serializer_class(data=data, context={'request': self.request})
+        serializer = serializer_class(data=data,
+                                      context={'request': self.request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def _delete_from(self, model, user, pk):
-        deleted_count, _ = model.objects.filter(user=user, recipe__id=pk).delete()
+        deleted_count, _ = model.objects.filter(user=user,
+                                                recipe__id=pk).delete()
         if deleted_count:
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(

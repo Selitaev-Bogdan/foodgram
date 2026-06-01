@@ -123,3 +123,10 @@ DJOSER = {
         'current_user': 'api.serializers.UserSerializer',
     },
 }
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://bodaybik.ru',
+    'https://bodaybik.ru',
+    'http://158.160.248.156',
+]
+

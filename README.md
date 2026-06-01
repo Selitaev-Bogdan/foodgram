@@ -1,49 +1,55 @@
-Foodgram — Продуктовый помощник
-Foodgram — это онлайн-сервис и мобильное приложение для публикации рецептов. Пользователи могут подписываться на авторов, добавлять рецепты в избранное и формировать список покупок, который можно скачать в формате .txt.
+# Foodgram — Продуктовый помощник
 
-Технологии
-Python 3.9
+Foodgram — это онлайн-сервис для публикации рецептов. Пользователи могут подписываться на авторов, добавлять рецепты в избранное и формировать список покупок, который можно скачать в формате .txt.
 
-Django 3.2
+## Данные для проверки (Deployment)
+- **Сайт:** [http://bodaybik.ru](http://bodaybik.ru)
+- **IP сервера:** 158.160.248.156
+- **Админ-панель:** [http://bodaybik.ru/admin/](http://bodaybik.ru/admin/)
+- **Логин администратора:** bogdanselitaev@gmail.com
+- **Пароль администратора:** [ВАШ_ПАРОЛЬ_ЗДЕСЬ]
 
-Django Rest Framework
+## Технологии
+- **Backend:** Python 3.9, Django 3.2, Django Rest Framework
+- **Frontend:** React
+- **Database:** PostgreSQL
+- **Infrastructure:** Docker, Docker Compose, Nginx, Gunicorn
 
-Docker & Docker Compose
+## Особенности реализации
+- Проект развернут в Docker-контейнерах.
+- Используется Nginx в качестве Reverse Proxy для обслуживания фронтенда, статики и проксирования запросов к API.
+- Настроены GitHub Actions для автоматической сборки образов и деплоя на сервер (CI/CD).
 
-Nginx
+## Как запустить проект локально
 
-PostgreSQL
-
-Запуск проекта (Локально в Docker)
-1. Клонирование репозитория
-git clone https://github.com/твой_логин/foodgram-1.git
-cd foodgram-1
-2. Настройка переменных окружения
+1. **Клонирование репозитория**
+   ```bash
+   git clone https://github.com/Selitaev-Bogdan/foodgram.git
+   cd foodgram
+Настройка переменных окружения
 В папке infra/ создайте файл .env и заполните его по образцу:
-
-Фрагмент кода
-POSTGRES_USER=foodgram_user
-POSTGRES_PASSWORD=foodgram_password
-POSTGRES_DB=foodgram
+code
+Env
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=postgres
 DB_HOST=db
 DB_PORT=5432
-3. Запуск контейнеров
-Перейдите в папку с docker-compose.yml и запустите сборку:
+SECRET_KEY=your_secret_key
+ALLOWED_HOSTS=127.0.0.1,localhost,web
+Запуск через Docker Compose
+code
+Bash
+cd infra/
+docker compose up -d --build
+Миграции и сбор статики
+code
+Bash
+docker compose exec web python manage.py migrate
+docker compose exec web python manage.py collectstatic --no-input
+Загрузка данных (ингредиенты)
 
-cd infra
-docker-compose up -d --build
-Примечание: Контейнер frontend подготовит необходимые файлы и завершит работу автоматически.
+docker compose exec web python manage.py loaddata data/ingredients.json
 
-4. Миграции и сбор статики
-Выполните команды внутри контейнера backend:
-
-docker-compose exec backend python manage.py migrate
-docker-compose exec backend python manage.py collectstatic --no-input
-5. Создание суперпользователя
-docker-compose exec backend python manage.py createsuperuser
-Ссылки
-Фронтенд: http://localhost
-
-Документация API (Redoc): http://localhost/api/docs/
-
-Админ-панель: http://localhost/admin/
+Автор
+Богдан Селитаев

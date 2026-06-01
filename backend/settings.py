@@ -129,4 +129,3 @@ CSRF_TRUSTED_ORIGINS = [
     'https://bodaybik.ru',
     'http://158.160.248.156',
 ]
-

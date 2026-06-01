@@ -23,13 +23,12 @@ Foodgram — это онлайн-сервис для публикации рец
 ## Как запустить проект локально
 
 1. **Клонирование репозитория**
-   ```bash
    git clone https://github.com/Selitaev-Bogdan/foodgram.git
    cd foodgram
-Настройка переменных окружения
+
+2. **Настройка переменных окружения**
+
 В папке infra/ создайте файл .env и заполните его по образцу:
-code
-Env
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 POSTGRES_DB=postgres
@@ -37,17 +36,18 @@ DB_HOST=db
 DB_PORT=5432
 SECRET_KEY=your_secret_key
 ALLOWED_HOSTS=127.0.0.1,localhost,web
-Запуск через Docker Compose
-code
-Bash
+
+3. **Запуск через Docker Compose**
+
 cd infra/
 docker compose up -d --build
-Миграции и сбор статики
-code
-Bash
+
+4. **Миграции и сбор статики**
+
 docker compose exec web python manage.py migrate
 docker compose exec web python manage.py collectstatic --no-input
-Загрузка данных (ингредиенты)
+
+5. **Загрузка данных (ингредиенты)**
 
 docker compose exec web python manage.py loaddata data/ingredients.json
 

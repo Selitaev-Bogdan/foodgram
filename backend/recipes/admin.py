@@ -52,7 +52,8 @@ class RecipeIngredientAdmin(admin.ModelAdmin):
     list_display = ('recipe', 'ingredient', 'amount')
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('recipe', 'ingredient')
+        return super().get_queryset(request).select_related('recipe',
+                                                            'ingredient')
 
 
 @admin.register(Favorite)

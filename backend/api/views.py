@@ -10,19 +10,24 @@ from rest_framework.response import Response
 
 from api.filters import IngredientFilter, RecipeFilter
 from api.permissions import IsAuthorOrReadOnly
-from api.serializers import (AvatarSerializer, FavoriteSerializer,
-                             IngredientSerializer, RecipeReadSerializer,
-                             RecipeWriteSerializer, ShoppingCartSerializer,
-                             SubscribeSerializer, TagSerializer,
-                             UserSerializer, UserSubscriptionsSerializer)
-from recipes.models import (Favorite, Follow, Ingredient, Recipe,
-                            RecipeIngredient, ShoppingCart, Tag)
+from api.serializers import (
+    AvatarSerializer, FavoriteSerializer, IngredientSerializer,
+    RecipeReadSerializer, RecipeWriteSerializer, ShoppingCartSerializer,
+    SubscribeSerializer, TagSerializer, UserSerializer,
+    UserSubscriptionsSerializer
+)
+from recipes.models import (
+    Favorite, Follow, Ingredient, Recipe, RecipeIngredient, ShoppingCart, Tag
+)
 from users.models import User
 
 
 class UserViewSet(DjoserUserViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+
+    def get_queryset(self):
+        return User.objects.all()
 
     @action(
         detail=True,
@@ -61,7 +66,9 @@ class UserViewSet(DjoserUserViewSet):
         user = request.user
         queryset = User.objects.filter(
             following__user=user
-        ).annotate(recipes_count=Count('recipes'))
+        ).annotate(
+            recipes_count=Count('recipes')
+        ).prefetch_related('recipes')
         page = self.paginate_queryset(queryset)
         serializer = UserSubscriptionsSerializer(
             page, many=True, context={'request': request}
@@ -101,12 +108,16 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
-    queryset = Recipe.objects.select_related('author').prefetch_related(
-        'tags', 'ingredients'
-    )
     permission_classes = (IsAuthorOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
+
+    def get_queryset(self):
+        return Recipe.objects.select_related(
+            'author'
+        ).prefetch_related(
+            'tags', 'ingredients'
+        )
 
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
@@ -122,8 +133,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def _delete_from(self, model, user, pk):
-        deleted_count, _ = model.objects.filter(user=user,
-                                                recipe__id=pk).delete()
+        deleted_count, _ = model.objects.filter(
+            user=user,
+            recipe__id=pk
+        ).delete()
         if deleted_count:
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(

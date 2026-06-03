@@ -1,15 +1,17 @@
 from django.contrib.auth import get_user_model
-from djoser.serializers import (UserCreateSerializer
-                                as DjoserUserCreateSerializer,
-                                UserSerializer as DjoserUserSerializer)
+from djoser.serializers import (
+    UserCreateSerializer as DjoserUserCreateSerializer,
+    UserSerializer as DjoserUserSerializer
+)
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
 
 from recipes.constants import MIN_AMOUNT, MIN_COOKING_TIME
-from recipes.models import (Favorite, Follow, Ingredient, Recipe,
-                            RecipeIngredient, ShoppingCart, Tag)
+from recipes.models import (
+    Favorite, Follow, Ingredient, Recipe, RecipeIngredient, ShoppingCart, Tag
+)
 
 User = get_user_model()
 
@@ -25,10 +27,10 @@ class UserSerializer(DjoserUserSerializer):
         )
 
     def get_is_subscribed(self, obj):
-        user = self.context.get('request').user
-        if user.is_anonymous:
+        request = self.context.get('request')
+        if not request or request.user.is_anonymous:
             return False
-        return Follow.objects.filter(user=user, author=obj).exists()
+        return Follow.objects.filter(user=request.user, author=obj).exists()
 
 
 class AvatarSerializer(serializers.ModelSerializer):
@@ -64,9 +66,12 @@ class UserSubscriptionsSerializer(UserSerializer):
 
     def get_recipes(self, obj):
         request = self.context.get('request')
-        limit = request.query_params.get('recipes_limit')
+        limit = None
+        if request:
+            limit = request.query_params.get('recipes_limit')
+
         queryset = obj.recipes.all()
-        if limit and isinstance(limit, str) and limit.isdigit():
+        if limit and limit.isdigit():
             queryset = queryset[:int(limit)]
         return ShortRecipeSerializer(
             queryset, many=True, context=self.context
@@ -139,16 +144,18 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         )
 
     def get_is_favorited(self, obj):
-        user = self.context.get('request').user
-        if user.is_anonymous:
+        request = self.context.get('request')
+        if not request or request.user.is_anonymous:
             return False
-        return user.favorites.filter(recipe=obj).exists()
+        return Favorite.objects.filter(user=request.user, recipe=obj).exists()
 
     def get_is_in_shopping_cart(self, obj):
-        user = self.context.get('request').user
-        if user.is_anonymous:
+        request = self.context.get('request')
+        if not request or request.user.is_anonymous:
             return False
-        return user.shopping_cart.filter(recipe=obj).exists()
+        return ShoppingCart.objects.filter(
+            user=request.user, recipe=obj
+        ).exists()
 
 
 class RecipeWriteSerializer(serializers.ModelSerializer):
@@ -187,8 +194,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             amount = item.get('amount')
             if not str(amount).isdigit():
                 raise ValidationError('Количество должно быть числом.')
-            amount = int(amount)
-            if amount < MIN_AMOUNT:
+            if int(amount) < MIN_AMOUNT:
                 raise ValidationError(f'Минимальное количество—{MIN_AMOUNT}.')
             ingredient_id = item.get('id')
             if not ingredient_id:
@@ -196,6 +202,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             if ingredient_id in ingredient_list:
                 raise ValidationError('Ингредиенты не должны повторяться.')
             ingredient_list.append(ingredient_id)
+
         tags = self.initial_data.get('tags')
         if not tags:
             raise ValidationError('Нужен хотя бы один тег.')

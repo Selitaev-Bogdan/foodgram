@@ -26,6 +26,11 @@ class UserViewSet(DjoserUserViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+    def get_permissions(self):
+        if self.action == 'retrieve':
+            return [AllowAny()]
+        return super().get_permissions()
+
     def get_queryset(self):
         return User.objects.all()
 
